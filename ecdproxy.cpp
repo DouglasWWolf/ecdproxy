@@ -32,7 +32,7 @@ static void chomp(char* buffer)
 
 
 //==========================================================================================================
-// shell() - Executes a shell command and returns the output as a vector of string
+// shell() - Executes a shell command and returns the output as a vector of strings
 //==========================================================================================================
 static vector<string> shell(const char* fmt, ...)
 {
@@ -152,6 +152,13 @@ bool CECDProxy::loadMasterBitstream()
     // Use Vivado to load the bitstream into the FPGA via JTAG
     vector<string> result = shell("%s 2>&1 -nojournal -nolog -mode batch -source %s", c(config_.vivado), c(tclFilename));
 
+    // If there was no output from that, it means we couldn't find Vivado
+    if (result.empty())
+    {
+        loadError_ = "Can't run " + config_.vivado;
+        return false;        
+    }
+
     // Write the Vivado output to a file for later inspection
     writeStrVecToFile(result, resultFilename);
 
@@ -159,7 +166,7 @@ bool CECDProxy::loadMasterBitstream()
     for (auto& s : result)
     {
         // Extract the first word from the line
-        std::string firstWord = s.substr(0, s.find(" ")) ;     
+        std::string firstWord = s.substr(0, s.find(" "));     
 
         // If the first word is "ERROR:", save this line as an error message
         if (firstWord == "ERROR:" && loadError_.empty()) loadError_ = s;
