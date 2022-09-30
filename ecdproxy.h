@@ -1,13 +1,23 @@
 //==========================================================================================================
 // ecdproxy.h - Defines a class that manages the ECD hardware
+//
+// General flow of operations:
+//
+//   [1] init()                - To read the configuration file
+//   [2] loadMasterBitstream() - To load the bitstream into the FPGA
+//   [3] startPCI()            - Initialize the PCI subsystem
 //==========================================================================================================
 #pragma once
 #include <string>
 #include <vector>
+#include <map>
 
 class CECDProxy
 {
 public:
+
+    // Default constructor
+    CECDProxy();
 
     // Call this once to read in the configuration file.  Can throw std::runtime_error
     void init(std::string filename);
@@ -18,18 +28,38 @@ public:
     // If loading a bitstream fails, this will return an error message
     std::string getLoadError() {return loadError_;}
 
+    // Perform a PCI hot-reset and map PCI resource regions into userspace.
+    // Can throw std:runtime_error
+    void startPCI();
+
+    // Call these to fetch the version number or date of the master bitstream
+    // after it has been loaded
+    std::string getMasterBitstreamVersion();
+    std::string getMasterBitstreamDate();
+
 protected:
     
     // If loading a bitstream fails, the error will be stored here
     std::string loadError_;
+
+    enum
+    {   
+        AM_MASTER_REVISION,
+        AM_MAX
+    };
+
+    // One address per AM_xxxx constant
+    uint32_t axiMap_[AM_MAX];
 
     // These values are read in from the config file durint init()
     struct
     {
         std::string tmpDir;
         std::string vivado;
+        std::string pciDevice;
         std::vector<std::string> masterProgrammingScript;
         std::vector<std::string> slaveProgrammingScript;
+
     } config_;
     
 };

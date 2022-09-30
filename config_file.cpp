@@ -10,7 +10,24 @@
 using namespace std;
 
 static double s_to_d(const string& s)  {return strtod(s.c_str(), NULL   );}
-static int    s_to_i(const string& s)  {return strtol(s.c_str(), NULL, 0);}
+
+static int s_to_i(const string& s)
+{
+    char buffer[100], *out = buffer;
+    int remaining = sizeof(buffer) - 1;
+    const char* in = s.c_str();
+    while (*in && remaining)
+    {
+        if (*in != '_')
+        {
+            *out++ = *in;
+            --remaining;
+        }
+        ++in;
+    }
+    *out = 0;
+    return strtol(buffer, NULL, 0);
+}
 
 static CTokenizer tokenizer;
 

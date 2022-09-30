@@ -7,7 +7,19 @@
 #include <stdarg.h>
 #include "ecdproxy.h"
 #include "config_file.h"
+#include "PciDevice.h"
+
+// Header files for the various RTL modules
+#include "RtlAxiRevision.h"
+
+// Haul in the entire std:: library
 using namespace std;
+
+// We need one interface to the PCI bus per executable
+static PciDevice PCI;
+
+// We may eventually need a way to associate these with a particular CECDProxy object
+static RtlAxiRevision AxiRevision;
 
 
 //==========================================================================================================
@@ -65,7 +77,7 @@ static vector<string> shell(const char* fmt, ...)
     // And hand the output of the program (1 string per line) to the caller
     return result;
 }
-//=================================================================================================
+//==========================================================================================================
 
 
 
@@ -99,7 +111,37 @@ static bool writeStrVecToFile(vector<string>& v, string filename)
 
 
 //==========================================================================================================
+// throwRuntime() - Throws a runtime exception
+//==========================================================================================================
+static void throwRuntime(const char* fmt, ...)
+{
+    char buffer[1024];
+    va_list ap;
+    va_start(ap, fmt);
+    vsprintf(buffer, fmt, ap);
+    va_end(ap);
+
+    throw runtime_error(buffer);
+}
+//=========================================================================================================
+
+
+
+//==========================================================================================================
+// CECDProxy() - Default constructor
+//==========================================================================================================
+CECDProxy::CECDProxy()
+{
+    memset(axiMap_, 0xFF, sizeof axiMap_);    
+}
+//==========================================================================================================
+
+
+
+//==========================================================================================================
 // init() - Reads in configuration setting from the config file
+//
+// Exceptions: This can throw std::runtime_error
 //==========================================================================================================
 void CECDProxy::init(string filename)
 {
@@ -115,8 +157,37 @@ void CECDProxy::init(string filename)
     // Fetch the name of the Vivado executable
     cf.get("vivado", &config_.vivado);
 
+    // Fetch the PCI vendorID:deviceID of the ecd-master
+    cf.get("pci_device", &config_.pciDevice);
+
     // Fetch the TCL script that we will use to program the master bitstream
     cf.get_script_vector("master_programming_script", &config_.masterProgrammingScript);
+
+    // Fetch the map that gives the base address of various AXI slave modules
+    cf.get("axi_map", &cs);
+
+    // Loop through each entry in the AXI map
+    while (cs.get_next_line())
+    {
+        // Fetch the name and base address from the line
+        string name = cs.get_next_token();
+        uint32_t address = cs.get_next_int();
+
+        if (name == "master_revision")
+        {
+            axiMap_[AM_MASTER_REVISION] = address;
+            continue;
+        }
+
+        // If we get here, we have an unknown device name
+        throwRuntime("unknown AXI device '%s'", c(name));
+    }
+
+    // Make sure that every axiMap_ entry was defined
+    for (int i=0; i<AM_MAX; ++i)
+    {
+        if (axiMap_[i] == 0xFFFFFFFF) throwRuntime("Missing axi_map definition for index %i", i);
+    }
 }
 //==========================================================================================================
 
@@ -177,3 +248,49 @@ bool CECDProxy::loadMasterBitstream()
     return (loadError_.empty());
 }
 //==========================================================================================================
+
+
+//==========================================================================================================
+// startPCI() - (1) Performs a PCI "hot_reset"
+//              (2) Maps the memory-mapped PCI resource regions into user-space
+//
+// Exceptions: This can throw std::runtime_error
+//==========================================================================================================
+void CECDProxy::startPCI()
+{
+    // Perform a "PCIe Hot Reset" to get our resource regions mapped into the physical address space
+    PCI.hotReset(config_.pciDevice);
+
+    // Map the memory-mapped resource regions into user-space
+    PCI.open(config_.pciDevice);
+
+    // Fetch the list of memory mapped resource regions
+    auto& resource = PCI.resourceList();
+
+    // Tell each of the RTL interfaces what their base address is
+    AxiRevision.setBaseAddress(resource[0].baseAddr + axiMap_[AM_MASTER_REVISION]);
+}
+//==========================================================================================================
+
+
+//==========================================================================================================
+// getMasterBitstreamVersion() - Returns the version string of the RTL design loaded into the ECD-master
+//                               FPGA
+//==========================================================================================================
+string CECDProxy::getMasterBitstreamVersion()
+{
+    return AxiRevision.getVersion();
+}
+//==========================================================================================================
+
+
+//==========================================================================================================
+// getMasterBitstreamDate() - Returns the date string of the RTL design loaded into the ECD-master FPGA
+//==========================================================================================================
+string CECDProxy::getMasterBitstreamDate()
+{
+    return AxiRevision.getDate();
+}
+//==========================================================================================================
+
+
