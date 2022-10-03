@@ -52,6 +52,7 @@ string RtlAxiRevision::getVersion()
 //==========================================================================================================
 
 
+
 //==========================================================================================================
 // getDate() - Returns the bitstream build date as a string
 //==========================================================================================================
@@ -73,10 +74,10 @@ string RtlAxiRevision::getDate()
     int month = (packedDate >> 24) & 0xFF;
 
     // The next 8 bits are the day
-    int day   = (packedDate >> 16) & 0xFF;
+    int day = (packedDate >> 16) & 0xFF;
     
     // The bottom 16 bits are the year
-    int year  = packedDate & 0xFFFF;
+    int year = packedDate & 0xFFFF;
 
     // If the month is out of range, this can't possibly be a date
     if (month < 1 || month > 12) return "unknown";
