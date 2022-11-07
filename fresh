@@ -1,0 +1,3 @@
+sudo rmmod uio_pci_generic
+sudo rmmod uio
+lsmod | grep uio

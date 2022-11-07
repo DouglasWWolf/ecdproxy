@@ -10,12 +10,14 @@ CECDProxy proxy;
 
 void execute()
 {
-    
+
     proxy.init("ecd_proxy.conf");
 
 
-    //bool ok = proxy.loadMasterBitstream();
-    //if (!ok) printf("%s\n", proxy.getLoadError().c_str());
+    cout << "Loading bitstream \n";
+    
+    bool ok = proxy.loadMasterBitstream();
+    if (!ok) printf("%s\n", proxy.getLoadError().c_str());
 
     proxy.startPCI();
 

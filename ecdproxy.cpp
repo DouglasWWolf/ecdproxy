@@ -148,6 +148,9 @@ void CECDProxy::init(string filename)
     CConfigFile cf;
     CConfigScript cs;
 
+    // If we're not running with root priveleges, give up
+    if (geteuid() != 0) throw runtime_error("Must be root to run.  Use sudo.");
+
     // Read the configuration file and complain if we can't.
     if (!cf.read(filename, false)) throw runtime_error("Cant read file "+filename);
 
@@ -260,6 +263,9 @@ void CECDProxy::startPCI()
 {
     // Perform a "PCIe Hot Reset" to get our resource regions mapped into the physical address space
     PCI.hotReset(config_.pciDevice);
+
+    // Initialize the Linux Userspace-I/O subsystem
+    int uioIndex = PCI.initializeUIO(config_.pciDevice);
 
     // Map the memory-mapped resource regions into user-space
     PCI.open(config_.pciDevice);
