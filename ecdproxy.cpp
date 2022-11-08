@@ -472,3 +472,14 @@ void CECDProxy::prepareDataTransfer(uint64_t addr0, uint64_t addr1, uint32_t buf
     AxiDataControl.start(addr0, addr1, buffSize);
 }    
 //=================================================================================================
+
+
+//=================================================================================================
+// notifyBufferFull() - Notifies the data control module that the specified ping-pong buffer has
+//                      been replenished with data.
+//=================================================================================================
+void CECDProxy::notifyBufferFull(int which)
+{
+    AxiDataControl.notifyBufferFull(which);
+}
+//=================================================================================================

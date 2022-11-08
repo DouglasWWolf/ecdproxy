@@ -22,6 +22,7 @@ enum
 //------------------------------------------------------------------
 
 
+
 //==========================================================================================================
 // start() - Pre-loads the RTL FIFO with data from our ping-pong buffers, and prepares the RTL design
 //           to start sending data over QSFP as requested by the ECD
@@ -46,3 +47,18 @@ void RtlDataControl::start(uint64_t addr0, uint64_t addr1, uint32_t buffSize)
 }
 //==========================================================================================================
 
+
+
+//==========================================================================================================
+// notifyBufferFull() - Notifies the data control module that the specified ping-pong buffer has
+//                      been replenished with data.
+//==========================================================================================================
+void RtlDataControl::notifyBufferFull(int which)
+{
+    // Ensure that a legitimate buffer number is passed in 
+    if (which < 0 || which > 1) return;
+
+    // Write a '1' to the appropriate bit in the PPB_RDY register
+    baseAddr_[REG_PPB_RDY]  = (1 << which);
+}
+//==========================================================================================================
