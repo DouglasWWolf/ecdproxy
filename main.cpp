@@ -6,7 +6,16 @@
 
 using namespace std;
 
-CECDProxy proxy;
+class ECD : public CECDProxy
+{
+    void onInterrupt(int irq)
+    {
+        printf("Handling IRQ %i!\n", irq);        
+    };
+
+};
+
+ECD proxy;
 
 void execute()
 {
@@ -16,8 +25,8 @@ void execute()
 
     cout << "Loading bitstream \n";
     
-    bool ok = proxy.loadMasterBitstream();
-    if (!ok) printf("%s\n", proxy.getLoadError().c_str());
+    //bool ok = proxy.loadMasterBitstream();
+    //if (!ok) printf("%s\n", proxy.getLoadError().c_str());
 
     proxy.startPCI();
 

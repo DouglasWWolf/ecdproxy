@@ -1,12 +1,12 @@
 //==========================================================================================================
-// RtlIntManager.h - Defines an interface to an RTL interrupt manager module.
+// RtlIrqManager.h - Defines an interface to an RTL interrupt manager module.
 //==========================================================================================================
 #pragma once
 #include <stdint.h>
 #include <string>
 using std::string;
 
-class RtlIntManager
+class RtlIrqManager
 {
 public:
 

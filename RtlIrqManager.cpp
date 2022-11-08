@@ -1,8 +1,8 @@
 //==========================================================================================================
-// RtlIntManager.cpp - Implements an interface to the interrupt-manager RTL module
+// RtlIrqManager.cpp - Implements an interface to the interrupt-manager RTL module
 //==========================================================================================================
 #include <string.h>
-#include "RtlIntManager.h"
+#include "RtlIrqManager.h"
 
 
 //------------------------------------------------------------------
@@ -20,7 +20,7 @@ enum
 //==========================================================================================================
 // getActiveInterrupts() - Returns a bitmap of which interrupts are currently awaiting servicing
 //==========================================================================================================
-uint32_t RtlIntManager::getActiveInterrupts()
+uint32_t RtlIrqManager::getActiveInterrupts()
 {
     return baseAddr_[REG_INTR];
 }
@@ -32,7 +32,7 @@ uint32_t RtlIntManager::getActiveInterrupts()
 //    
 // Passed: irqBitMap = bitmap of which IRQs are being acknowledged as serviced
 //==========================================================================================================
-void RtlIntManager::clearInterrupts(uint32_t irqBitmap)
+void RtlIrqManager::clearInterrupts(uint32_t irqBitmap)
 {
     baseAddr_[REG_CLEAR] = irqBitmap;    
 }
