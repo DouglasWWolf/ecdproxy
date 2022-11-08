@@ -45,9 +45,15 @@ public:
     std::string getMasterBitstreamDate();
 
     // Override this to receive interrupt notifications
-    virtual void onInterrupt(int irq) {};
+    virtual void onInterrupt(int irq, uint64_t irqCounter) {};
 
 protected:
+
+    // This is the number of PCI interrupt sources we are managing
+    enum {IRQ_COUNT = 2};
+
+    // Keeps track of how many times an interrupt has been called since "prepareDataTransfer()"
+    uint64_t interruptCounter_[IRQ_COUNT];
 
     // Spawns "monitorInterrupts()" in its own detached thread
     void spawnTopLevelInterruptHandler(int uioDevice);

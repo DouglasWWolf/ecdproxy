@@ -18,7 +18,7 @@ void    fillBuffer(int which, uint32_t row);
 
 class ECD : public CECDProxy
 {
-    void onInterrupt(int irq);
+    void onInterrupt(int irq, uint64_t irqCounter);
 } proxy;
 
 
@@ -123,9 +123,9 @@ void fillBuffer(int which, uint32_t row)
 
 uint32_t ppbRow[2];
 
-void ECD::onInterrupt(int irq)
+void ECD::onInterrupt(int irq, uint64_t irqCounter)
 {
-    printf("Servicing IRQ %i\n", irq);
+    printf("Servicing IRQ %i, #%lu\n", irq, irqCounter);
     ppbRow[irq] += PPB_BLOCKS;
     fillBuffer(irq, ppbRow[irq]);
     notifyBufferFull(irq);

@@ -382,9 +382,6 @@ void CECDProxy::monitorInterrupts(int uioDevice)
     uint8_t  commandHigh;
     char     filename[64];
 
-    // This is the number of IRQ lines that exist
-    const int IRQ_COUNT = 2;
-
     // Generate the filename of the psudeo-file that notifies us of interrupts
     sprintf(filename, "/dev/uio%d", uioDevice);
 
@@ -449,7 +446,7 @@ void CECDProxy::monitorInterrupts(int uioDevice)
         // Call the interrupt handler for each pending interrupt 
         for (int i=0; i<IRQ_COUNT; ++i)
         {
-            if (irqSources & (1<<i)) onInterrupt(i);
+            if (irqSources & (1<<i)) onInterrupt(i, ++interruptCounter_[i]);
         }
     }
 }
@@ -464,6 +461,9 @@ void CECDProxy::prepareDataTransfer(uint64_t addr0, uint64_t addr1, uint32_t buf
 {
     // Place the RTL design into a known state
     AxiRestartManager.restart();
+
+    // Clear all of the interrupt counters to zero
+    memset(interruptCounter_, 0, sizeof interruptCounter_);
 
     // Wait for already queued DMA requests to drain out of the system
     usleep(500000);
