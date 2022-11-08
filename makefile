@@ -16,7 +16,7 @@ EXE = proxytest
 # This is a list of directories that have compilable code in them.  If there
 # are no subdirectories, this line is must SUBDIRS = .
 #-----------------------------------------------------------------------------
-SUBDIRS = .
+SUBDIRS = . ecdproxylib
 
 
 #-----------------------------------------------------------------------------
@@ -39,6 +39,7 @@ CXXFLAGS =	\
 -O2 -g -Wall \
 -c -fmessage-length=0 \
 -D_GNU_SOURCE \
+-I ecdproxylib \
 -Wno-sign-compare \
 -Wno-unused-value
 
@@ -184,15 +185,20 @@ debug:
 
 # DO NOT DELETE
 
-obj_x86/config_file.o: config_file.h tokenizer.h
-obj_x86/tokenizer.o: tokenizer.h
-obj_x86/UioInterface.o: UioInterface.h
-obj_x86/RtlDataControl.o: RtlDataControl.h
-obj_x86/RtlIrqManager.o: RtlIrqManager.h
-obj_x86/ecdproxy.o: ecdproxy.h config_file.h PciDevice.h UioInterface.h
-obj_x86/ecdproxy.o: RtlAxiRevision.h RtlIrqManager.h RtlRestartManager.h
-obj_x86/ecdproxy.o: RtlDataControl.h
-obj_x86/PciDevice.o: PciDevice.h
-obj_x86/RtlAxiRevision.o: RtlAxiRevision.h
-obj_x86/RtlRestartManager.o: RtlRestartManager.h
-obj_x86/main.o: ecdproxy.h
+obj_x86/ecdproxylib/config_file.o: ecdproxylib/config_file.h
+obj_x86/ecdproxylib/config_file.o: ecdproxylib/tokenizer.h
+obj_x86/ecdproxylib/tokenizer.o: ecdproxylib/tokenizer.h
+obj_x86/ecdproxylib/UioInterface.o: ecdproxylib/UioInterface.h
+obj_x86/ecdproxylib/RtlDataControl.o: ecdproxylib/RtlDataControl.h
+obj_x86/ecdproxylib/RtlIrqManager.o: ecdproxylib/RtlIrqManager.h
+obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/ecdproxy.h
+obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/config_file.h
+obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/PciDevice.h
+obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/UioInterface.h
+obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/RtlAxiRevision.h
+obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/RtlIrqManager.h
+obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/RtlRestartManager.h
+obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/RtlDataControl.h
+obj_x86/ecdproxylib/PciDevice.o: ecdproxylib/PciDevice.h
+obj_x86/ecdproxylib/RtlAxiRevision.o: ecdproxylib/RtlAxiRevision.h
+obj_x86/ecdproxylib/RtlRestartManager.o: ecdproxylib/RtlRestartManager.h
