@@ -20,6 +20,7 @@
 #include "RtlAxiRevision.h"
 #include "RtlIrqManager.h"
 #include "RtlRestartManager.h"
+#include "RtlDataControl.h"
 
 // Haul in the entire std:: library
 using namespace std;
@@ -34,6 +35,7 @@ static UioInterface UIO;
 static RtlAxiRevision    AxiRevision;
 static RtlIrqManager     AxiIrqManager;
 static RtlRestartManager AxiRestartManager;
+static RtlDataControl    AxiDataControl;
 
 //==========================================================================================================
 // c() - Shorthand way of converting a std::string to a const char*
@@ -211,14 +213,21 @@ void CECDProxy::init(string filename)
         }
 
 
-        // If we're filling in the AXI address of the restart manager
+        // If we're filling in the AXI address of the restart manager...
         if (name == "restart_manager")
         {
             axiMap_[AM_RESTART_MANAGER] = address;
             continue;
         }
 
-        // If we get here, we have an unknown device name
+        // If we're filling in the AXI address of the data control module...
+        if (name == "data_control")
+        {
+            axiMap_[AM_DATA_CONTROL] = address;
+            continue;
+        }
+
+        // If we get here, we have an unknown module name
         throwRuntime("unknown AXI device '%s'", c(name));
     }
 
@@ -306,13 +315,14 @@ void CECDProxy::startPCI()
     // Map the memory-mapped resource regions into user-space
     PCI.open(config_.pciDevice);
 
-    // Fetch the list of memory mapped resource regions
+    // Fetch the list of memory mapped resource regions 
     auto& resource = PCI.resourceList();
 
-    // Tell each of the RTL interfaces what their base address is
+    // Tell each of the RTL module interfaces what their base address is
     AxiRevision      .setBaseAddress(resource[0].baseAddr + axiMap_[AM_MASTER_REVISION]);
     AxiIrqManager    .setBaseAddress(resource[0].baseAddr + axiMap_[AM_IRQ_MANAGER    ]);
     AxiRestartManager.setBaseAddress(resource[0].baseAddr + axiMap_[AM_RESTART_MANAGER]);    
+    AxiDataControl   .setBaseAddress(resource[0].baseAddr + axiMap_[AM_DATA_CONTROL   ]);    
 
     // Spawn the thread that sits in a loop and waits for PCI interrupt notifications
     spawnTopLevelInterruptHandler(uioIndex);

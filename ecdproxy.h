@@ -52,11 +52,13 @@ protected:
     // If loading a bitstream fails, the error will be stored here
     std::string loadError_;
 
+    // These constants serve as indices into axiMap_
     enum
     {   
         AM_MASTER_REVISION,
         AM_IRQ_MANAGER,
         AM_RESTART_MANAGER,
+        AM_DATA_CONTROL,
         AM_MAX
     };
 
