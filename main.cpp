@@ -6,26 +6,59 @@
 #include <sys/mman.h>
 #include "ecdproxy.h"
 
+// The addresses and size of the ping-pong buffers
 const uint64_t PPB0 = 0x100000000;
 const uint64_t PPB1 = 0x140000000;
 const uint32_t PPB_BLOCKS = 16;
 
+// Userspace pointer to reserved RAM
 uint8_t* physMem;
 
 using namespace std;
-uint8_t* mapPhysMem(uint64_t physAddr, size_t size);
-void    fillBuffer(int which, uint32_t row);
 
+// Forward declarations
+uint8_t* mapPhysMem(uint64_t physAddr, size_t size);
+void     fillBuffer(int which, uint32_t row);
+void     execute();
+
+// Interfaces to the ECD_Master/ECD RTL designs
 class ECD : public CECDProxy
 {
     void onInterrupt(int irq, uint64_t irqCounter);
 } proxy;
 
 
+
+//=================================================================================================
+// main() - Execution starts here
+//=================================================================================================
+int main()
+{
+    printf("Proxy Test!\n");
+
+    try
+    {
+        execute();
+    }
+    catch(const std::exception& e)
+    {
+        printf("%s\n", e.what());
+        exit(1);
+    }
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// execute() - Does everything neccessary to begin a data transfer
+//=================================================================================================
 void execute()
 {
+    // Map the reserved RAM block into userspace
     cout << "Mapping physical RAM\n";
     physMem = mapPhysMem(0x100000000, 0x100000000);
+    
+    // Fill the ping-pong buffers
     fillBuffer(0, 0);
     fillBuffer(1, 0);
 
@@ -50,23 +83,7 @@ void execute()
     while(1) sleep(999999);
 
 }
-
-int main()
-{
-    printf("Proxy Test!\n");
-
-    try
-    {
-        execute();
-    }
-    catch(const std::exception& e)
-    {
-        printf("%s\n", e.what());
-        exit(1);
-    }
-
-}
-
+//=================================================================================================
 
 
 //=================================================================================================
