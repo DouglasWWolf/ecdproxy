@@ -16,7 +16,7 @@ EXE = proxytest
 # This is a list of directories that have compilable code in them.  If there
 # are no subdirectories, this line is must SUBDIRS = .
 #-----------------------------------------------------------------------------
-SUBDIRS = . ecdproxylib
+SUBDIRS = . 
 
 
 #-----------------------------------------------------------------------------
@@ -39,14 +39,14 @@ CXXFLAGS =	\
 -O2 -g -Wall \
 -c -fmessage-length=0 \
 -D_GNU_SOURCE \
--I ecdproxylib \
+-I../ecdproxylib \
 -Wno-sign-compare \
 -Wno-unused-value
 
 #-----------------------------------------------------------------------------
 # Link options
 #-----------------------------------------------------------------------------
-LINK_FLAGS = -pthread -lm -lrt
+LINK_FLAGS = -L../ecdproxylib -pthread -lm -lrt -lecdproxy
 
 
 

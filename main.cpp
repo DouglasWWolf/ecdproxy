@@ -32,9 +32,9 @@ void execute()
     cout << "Initializing ECDProxy\n";
     proxy.init("ecd_proxy.conf");
 
-//    cout << "Loading bitstream \n";    
-//    bool ok = proxy.loadMasterBitstream();
-//    if (!ok) printf("%s\n", proxy.getLoadError().c_str());
+      cout << "Loading bitstream \n";    
+      bool ok = proxy.loadMasterBitstream();
+      if (!ok) printf("%s\n", proxy.getLoadError().c_str());
 
     proxy.startPCI();
 
