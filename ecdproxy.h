@@ -56,6 +56,7 @@ protected:
     {   
         AM_MASTER_REVISION,
         AM_IRQ_MANAGER,
+        AM_RESTART_MANAGER,
         AM_MAX
     };
 

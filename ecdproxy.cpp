@@ -19,6 +19,7 @@
 // Header files for the various RTL modules
 #include "RtlAxiRevision.h"
 #include "RtlIrqManager.h"
+#include "RtlRestartManager.h"
 
 // Haul in the entire std:: library
 using namespace std;
@@ -30,8 +31,9 @@ static PciDevice PCI;
 static UioInterface UIO;
 
 // We may eventually need a way to associate these with a particular CECDProxy object
-static RtlAxiRevision AxiRevision;
-static RtlIrqManager  AxiIrqManager;
+static RtlAxiRevision    AxiRevision;
+static RtlIrqManager     AxiIrqManager;
+static RtlRestartManager AxiRestartManager;
 
 //==========================================================================================================
 // c() - Shorthand way of converting a std::string to a const char*
@@ -208,6 +210,16 @@ void CECDProxy::init(string filename)
             continue;
         }
 
+
+        // If we're filling in the AXI address of the restart manager
+        if (name == "restart_manager")
+        {
+            axiMap_[AM_RESTART_MANAGER] = address;
+            continue;
+        }
+
+
+
         // If we get here, we have an unknown device name
         throwRuntime("unknown AXI device '%s'", c(name));
     }
@@ -300,8 +312,9 @@ void CECDProxy::startPCI()
     auto& resource = PCI.resourceList();
 
     // Tell each of the RTL interfaces what their base address is
-    AxiRevision  .setBaseAddress(resource[0].baseAddr + axiMap_[AM_MASTER_REVISION]);
-    AxiIrqManager.setBaseAddress(resource[0].baseAddr + axiMap_[AM_IRQ_MANAGER    ]);
+    AxiRevision      .setBaseAddress(resource[0].baseAddr + axiMap_[AM_MASTER_REVISION]);
+    AxiIrqManager    .setBaseAddress(resource[0].baseAddr + axiMap_[AM_IRQ_MANAGER    ]);
+    AxiRestartManager.setBaseAddress(resource[0].baseAddr + axiMap_[AM_RESTART_MANAGER]);    
 
     // Spawn the thread that sits in a loop and waits for PCI interrupt notifications
     spawnTopLevelInterruptHandler(uioIndex);
