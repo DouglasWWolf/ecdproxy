@@ -14,7 +14,7 @@ public:
     void setBaseAddress(uint8_t* p) {baseAddr_ = (volatile uint32_t*)p;}
 
     // Call this to begin a data transfer and pre-load the RTL FIFO
-    void start(uint64_t addr0, uint64_t addr1, uint64_t buffSize);
+    void start(uint64_t addr0, uint64_t addr1, uint32_t buffSize);
 
 protected:
 

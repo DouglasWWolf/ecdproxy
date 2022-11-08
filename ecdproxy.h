@@ -33,6 +33,9 @@ public:
     // Can throw std:runtime_error
     void startPCI();
 
+    // Preload the RTL FIFOs and prepare for data transfer to begin
+    void prepareDataTransfer(uint64_t addr0, uint64_t addr1, uint32_t buffSize);    
+
     // Call these to fetch the version number or date of the master bitstream
     // after it has been loaded
     std::string getMasterBitstreamVersion();

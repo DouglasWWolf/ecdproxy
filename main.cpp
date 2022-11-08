@@ -23,8 +23,7 @@ void execute()
     proxy.init("ecd_proxy.conf");
 
 
-    cout << "Loading bitstream \n";
-    
+//    cout << "Loading bitstream \n";    
 //    bool ok = proxy.loadMasterBitstream();
 //    if (!ok) printf("%s\n", proxy.getLoadError().c_str());
 
@@ -35,6 +34,8 @@ void execute()
 
     string date = proxy.getMasterBitstreamDate();
     cout << "Date: " << date << "\n";
+
+    proxy.prepareDataTransfer(0x100000000, 0x200000000, 32);
 
     cout << "Waiting for interrupts\n";
     while(1) sleep(999999);

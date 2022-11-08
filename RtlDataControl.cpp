@@ -22,8 +22,27 @@ enum
 //------------------------------------------------------------------
 
 
-void RtlDataControl::start(uint64_t addr0, uint64_t addr1, uint64_t buffSize)
+//==========================================================================================================
+// start() - Pre-loads the RTL FIFO with data from our ping-pong buffers, and prepares the RTL design
+//           to start sending data over QSFP as requested by the ECD
+//
+// Passed: addr0    = Physical address of the 1st part of the ping-pong buffer
+//         addr1    = Physical address of the 2nd part of the ping-pong buffer
+//         buffSize = The size of each buffer in units of 2048 byte blocks
+//==========================================================================================================
+void RtlDataControl::start(uint64_t addr0, uint64_t addr1, uint32_t buffSize)
 {
+    // Give our AXI slave the physical addresses of our ping-pong buffers
+    baseAddr_[REG_PPB0H] = (addr0 >> 32) & 0xFFFFFFFF;
+    baseAddr_[REG_PPB0L] = (addr0      ) & 0xFFFFFFFF;    
+    baseAddr_[REG_PPB1H] = (addr1 >> 32) & 0xFFFFFFFF;
+    baseAddr_[REG_PPB1L] = (addr1      ) & 0xFFFFFFFF;    
 
-    
+    // Give our AXI slave the size of those buffers, in units of 2048 byte blocks
+    baseAddr_[REG_PPB_SIZE] = buffSize;
+
+    // Start the data transfer
+    baseAddr_[REG_START] = 1;
 }
+//==========================================================================================================
+

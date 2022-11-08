@@ -456,3 +456,19 @@ void CECDProxy::monitorInterrupts(int uioDevice)
 //=================================================================================================
 
 
+
+//=================================================================================================
+// prepareDataTransfer() - Preload the RTL FIFOs and prepare for data transfer to begin
+//=================================================================================================
+void CECDProxy::prepareDataTransfer(uint64_t addr0, uint64_t addr1, uint32_t buffSize)
+{
+    // Place the RTL design into a known state
+    AxiRestartManager.restart();
+
+    // Wait for already queued DMA requests to drain out of the system
+    usleep(500000);
+
+    // And begin transferring data in anticipation of data requests arriving from the ECD
+    AxiDataControl.start(addr0, addr1, buffSize);
+}    
+//=================================================================================================
