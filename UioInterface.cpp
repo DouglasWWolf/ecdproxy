@@ -9,7 +9,7 @@
 #include <string.h>
 #include <filesystem>
 #include <string>
-#include "PciDevice.h"
+#include "UioInterface.h"
 using namespace std;
 
 static volatile int bitBucket;
@@ -168,14 +168,13 @@ static int findUioIndex(string bdf)
 
 
 //=================================================================================================
-// initializeUIO() - Registers our device with the Linux UIO subsystem and returns the 
+// initialize() - Registers our device with the Linux UIO subsystem and returns the 
 //                   UIO index that corresponds to our device
 //
 // Passed: device = PCI device name in vendorID:deviceID format
 //=================================================================================================
-int PciDevice::initializeUIO(string device)
+int UioInterface::initialize(string device)
 {
-
     // Convert the device ID into a BDF
     string bdf = getBDF(device);
 

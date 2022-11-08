@@ -8,6 +8,7 @@
 #include "ecdproxy.h"
 #include "config_file.h"
 #include "PciDevice.h"
+#include "UioInterface.h"
 
 // Header files for the various RTL modules
 #include "RtlAxiRevision.h"
@@ -17,6 +18,9 @@ using namespace std;
 
 // We need one interface to the PCI bus per executable
 static PciDevice PCI;
+
+// Interface to the Linux Userspace-I/O subsystem
+static UioInterface UIO;
 
 // We may eventually need a way to associate these with a particular CECDProxy object
 static RtlAxiRevision AxiRevision;
@@ -265,7 +269,7 @@ void CECDProxy::startPCI()
     PCI.hotReset(config_.pciDevice);
 
     // Initialize the Linux Userspace-I/O subsystem
-    int uioIndex = PCI.initializeUIO(config_.pciDevice);
+    int uioIndex = UIO.initialize(config_.pciDevice);
 
     // Map the memory-mapped resource regions into user-space
     PCI.open(config_.pciDevice);
