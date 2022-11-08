@@ -218,8 +218,6 @@ void CECDProxy::init(string filename)
             continue;
         }
 
-
-
         // If we get here, we have an unknown device name
         throwRuntime("unknown AXI device '%s'", c(name));
     }
