@@ -25,8 +25,8 @@ void execute()
 
     cout << "Loading bitstream \n";
     
-    //bool ok = proxy.loadMasterBitstream();
-    //if (!ok) printf("%s\n", proxy.getLoadError().c_str());
+//    bool ok = proxy.loadMasterBitstream();
+//    if (!ok) printf("%s\n", proxy.getLoadError().c_str());
 
     proxy.startPCI();
 
@@ -43,7 +43,7 @@ void execute()
 
 int main()
 {
-    printf("Hello Proxy!\n");
+    printf("Proxy Test!\n");
 
     try
     {

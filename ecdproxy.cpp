@@ -145,9 +145,6 @@ CECDProxy::CECDProxy()
 {
     // We don't yet know the base addresses of any AXI slave modules
     memset(axiMap_, 0xFF, sizeof axiMap_);    
-
-    // We don't yet know anything about the number of IRQs we monitor
-    irqCount_ = 0;
 }
 //==========================================================================================================
 
@@ -340,9 +337,6 @@ string CECDProxy::getMasterBitstreamDate()
 //==========================================================================================================
 void CECDProxy::spawnTopLevelInterruptHandler(int uioDevice)
 {
-    // If we haven't been initialized, don't do anything
-    if (irqCount_ == 0) return;
-
     // Spawn "monitorInterrupts()" in its own thread
     thread thread(&CECDProxy::monitorInterrupts, this, uioDevice);
 
@@ -366,6 +360,9 @@ void CECDProxy::monitorInterrupts(int uioDevice)
     uint32_t interruptCount;
     uint8_t  commandHigh;
     char     filename[64];
+
+    // This is the number of IRQ lines that exist
+    const int IRQ_COUNT = 2;
 
     // Generate the filename of the psudeo-file that notifies us of interrupts
     sprintf(filename, "/dev/uio%d", uioDevice);
@@ -425,14 +422,11 @@ void CECDProxy::monitorInterrupts(int uioDevice)
         // If there are no interrupt sources, ignore this interrupt
         if (irqSources == 0) continue;
 
-        // If we're in verbose mode, tell the world that an interrupt occured
-        printf("Interrupt from sources 0x%08x\n", irqSources);
-
         // Clear the interrupts from those sources
         AxiIrqManager.clearInterrupts(irqSources);
 
         // Call the interrupt handler for each pending interrupt 
-        for (int i=0; i<irqCount_; ++i)
+        for (int i=0; i<IRQ_COUNT; ++i)
         {
             if (irqSources & (1<<i)) onInterrupt(i);
         }

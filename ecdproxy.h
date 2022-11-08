@@ -49,9 +49,6 @@ protected:
     // Monitors PCI interrupts and notifies handlers by writing to FIFOs
     void monitorInterrupts(int uioDevice);
 
-    // This is the number of distinct interrupt-request sources
-    int irqCount_;
-
     // If loading a bitstream fails, the error will be stored here
     std::string loadError_;
 
