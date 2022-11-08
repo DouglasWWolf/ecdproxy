@@ -187,12 +187,11 @@ debug:
 obj_x86/config_file.o: config_file.h tokenizer.h
 obj_x86/tokenizer.o: tokenizer.h
 obj_x86/UioInterface.o: UioInterface.h
-obj_x86/RtlDataControl.o: RtlDataControl.h
 obj_x86/RtlIrqManager.o: RtlIrqManager.h
+obj_x86/RtlAxiRevision.o: RtlAxiRevision.h
 obj_x86/ecdproxy.o: ecdproxy.h config_file.h PciDevice.h UioInterface.h
 obj_x86/ecdproxy.o: RtlAxiRevision.h RtlIrqManager.h RtlRestartManager.h
 obj_x86/ecdproxy.o: RtlDataControl.h
 obj_x86/PciDevice.o: PciDevice.h
-obj_x86/RtlAxiRevision.o: RtlAxiRevision.h
 obj_x86/RtlRestartManager.o: RtlRestartManager.h
 obj_x86/main.o: ecdproxy.h
