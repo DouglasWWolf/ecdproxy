@@ -38,13 +38,35 @@ public:
     std::string getMasterBitstreamDate();
 
 protected:
-    
+
+    // Maximum number of interrupt request sources we can support
+    enum {MAX_IRQS = 32};
+
+    // Creates the FIFOs that we use to receive PCI interrupts
+    void createIntrFIFOs(std::string dir, int irqCount);
+
+    // Cleans up (i.e., deletes) FIFOs created by "createIntrFIFOs"
+    void cleanupIntrFIFOs();
+
+    // Constains the path to the FIFOs we use to receive interrupt notifications
+    std::string intrFifoPath_;
+
+    // This is the number of distinct interrupt-request sources
+    int irqCount_;
+
+    // The numerically highest file descriptor for our interrupt FIFOs
+    int highestIntrFD_;
+
+    // One file descriptor per interrupt request source
+    int intrFD_[MAX_IRQS];
+
     // If loading a bitstream fails, the error will be stored here
     std::string loadError_;
 
     enum
     {   
         AM_MASTER_REVISION,
+        AM_INT_MANAGER,
         AM_MAX
     };
 

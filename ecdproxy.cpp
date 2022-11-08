@@ -5,6 +5,10 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "ecdproxy.h"
 #include "config_file.h"
 #include "PciDevice.h"
@@ -12,6 +16,7 @@
 
 // Header files for the various RTL modules
 #include "RtlAxiRevision.h"
+#include "RtlIntManager.h"
 
 // Haul in the entire std:: library
 using namespace std;
@@ -24,6 +29,7 @@ static UioInterface UIO;
 
 // We may eventually need a way to associate these with a particular CECDProxy object
 static RtlAxiRevision AxiRevision;
+static RtlIntManager  AxiIntManager;
 
 
 //==========================================================================================================
@@ -180,9 +186,17 @@ void CECDProxy::init(string filename)
         string name = cs.get_next_token();
         uint32_t address = cs.get_next_int();
 
+        // If we're filling in the AXI address of the RTL revision...
         if (name == "master_revision")
         {
             axiMap_[AM_MASTER_REVISION] = address;
+            continue;
+        }
+
+        // If we're filling in the AXI address of the interrupt manager...
+        if (name == "int_manager")
+        {
+            axiMap_[AM_INT_MANAGER] = address;
             continue;
         }
 
@@ -278,7 +292,11 @@ void CECDProxy::startPCI()
     auto& resource = PCI.resourceList();
 
     // Tell each of the RTL interfaces what their base address is
-    AxiRevision.setBaseAddress(resource[0].baseAddr + axiMap_[AM_MASTER_REVISION]);
+    AxiRevision  .setBaseAddress(resource[0].baseAddr + axiMap_[AM_MASTER_REVISION]);
+    AxiIntManager.setBaseAddress(resource[0].baseAddr + axiMap_[AM_INT_MANAGER    ]);
+
+    // Create the FIFOs that we use to detect PCI interrupts
+    createIntrFIFOs(config_.tmpDir, 2);
 }
 //==========================================================================================================
 
@@ -304,3 +322,102 @@ string CECDProxy::getMasterBitstreamDate()
 //==========================================================================================================
 
 
+
+
+//==========================================================================================================
+// createPipe() - Creates a FIFO and opens it
+//==========================================================================================================
+static int createPipe(const string& path, int n)
+{
+    char name[256];
+
+    // Create the name of this pipe
+    sprintf(name, "%s%i", path.c_str(), n);
+
+    // If it already exists, get rid of it
+    remove(name);
+
+    // Create the FIFO
+    if (mkfifo(name, 0666) != 0) throwRuntime("Failed to make fifo %s", name);
+
+    // Open the FIFO
+    int fd = open(name, O_RDWR);
+
+    // If we failed to open the FIFO, complain about it
+    if (fd < 0) throwRuntime("Failed to open fifo %s", name);
+
+    // If we get here, we have a valid file descriptor and it's open
+    return fd;
+}
+//==========================================================================================================
+
+
+
+
+//==========================================================================================================
+// init() - Initialize the distribution system (create the FIFOs, etc)
+//
+// On Exit: intrFifoPath_  = The full pathname of the FIFOs (except for the number on the end)
+//          irqCount_      = The number of interrupt sources to manage
+//          intrFD_[]      = Array of file descriptors for the write-end of our FIFOs
+//          highestIntrFD_ = The largest value in the fd_[] array
+//
+// On exit, all FIFOs have been created and opened.             
+//==========================================================================================================
+void CECDProxy::createIntrFIFOs(string dir, int irqCount)
+{
+    // Construct the portion of the FIFO names that isn't a number
+    intrFifoPath_ = dir + "/interrupt";
+
+    // Save the IRQ count for posterity
+    irqCount_ = irqCount;
+
+    // We don't yet know what our highest file-descriptor is
+    highestIntrFD_ = -1;
+
+    // Loop through each interrupt source we need to support...
+    for (int i=0; i<irqCount; ++i)
+    {
+        // Create and open the FIFO for this interrupt source
+        intrFD_[i] = createPipe(intrFifoPath_.c_str(), i);
+
+        // Keep track of what our highest file descriptor is
+        if (intrFD_[i] > highestIntrFD_) highestIntrFD_ = intrFD_[i];
+    }
+}
+//==========================================================================================================
+
+
+
+
+//==========================================================================================================
+// cleanupIntrFIFOs() - Closes all of the file descriptors and deletes all of the FIFOs that we use for
+//                      receiving PCI interupts
+//==========================================================================================================
+void CECDProxy::cleanupIntrFIFOs()
+{
+    int i;
+    char filename[256];
+
+    // Close all of the file descriptors
+    for (i=0; i<irqCount_; ++i) 
+    {
+        int& fd = intrFD_[i];
+        if (fd != -1) close(fd);
+        fd = -1;
+    }
+
+    // If there's no FIFO path specified, we're done
+    if (intrFifoPath_.empty()) return;
+
+    // Get the pathname as a const char*
+    const char* path = intrFifoPath_.c_str();
+
+    // And remove every possible FIFO
+    for (i=0; i<MAX_IRQS; ++i)
+    {
+        sprintf(filename, "%s%d", path, i);
+        remove(filename);
+    }
+}
+//==========================================================================================================

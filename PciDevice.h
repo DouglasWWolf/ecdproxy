@@ -12,9 +12,6 @@ public:
     // Performs a PCI hot-reset of the specified device
     static void hotReset(std::string device);
 
-    // Initializes the Linux Userspace-I/O subsystem
-    static int initializeUIO(std::string device);
-
     // Default constructor
     PciDevice() {};
 
