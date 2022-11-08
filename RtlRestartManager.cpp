@@ -11,7 +11,7 @@
 //------------------------------------------------------------------
 enum
 {
-    REG_RESTART
+    REG_RESTART = 0
 };
 //------------------------------------------------------------------
 
@@ -19,16 +19,12 @@ enum
 
 
 //==========================================================================================================
-// restart() - Places the ECD-Master into a known condition, and waits for data to drain out of
-//             the system
+// restart() - Places the ECD-Master into a known condition
 //==========================================================================================================
 void RtlRestartManager::restart()
 {
     // Place the ECD-Master RTL design into a known condition
     baseAddr_[REG_RESTART] = 1;
-    
-    // Wait for data to drain out of the system
-    usleep(500000);
 }
 //==========================================================================================================
 
