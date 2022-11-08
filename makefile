@@ -48,11 +48,6 @@ CXXFLAGS =	\
 LINK_FLAGS = -pthread -lm -lrt
 
 
-#-----------------------------------------------------------------------------
-# Special compile time flags for ARM targets
-#-----------------------------------------------------------------------------
-ARMFLAGS = 
-
 
 #-----------------------------------------------------------------------------
 # If there is no target on the command line, this is the target we use
@@ -62,11 +57,7 @@ ARMFLAGS =
 #-----------------------------------------------------------------------------
 # Define the name of the compiler and what "build all" means for our platform
 #-----------------------------------------------------------------------------
-ALL       = x86 arm
-ARM_PATH  = /opt/freescale/usr/local/gcc-4.4.4-glibc-2.11.1-multilib-1.0/arm-fsl-linux-gnueabi/bin/arm-none-linux-gnueabi
-ARM_CC    = $(ARM_PATH)-gcc
-ARM_CXX   = $(ARM_PATH)-g++
-ARM_STRIP = ${ARM_PATH}-strip
+ALL       = x86 
 X86_CC    = $(CC)
 X86_CXX   = $(CXX)
 X86_STRIP = strip
@@ -75,14 +66,13 @@ X86_STRIP = strip
 #-----------------------------------------------------------------------------
 # Declare where the object files get created
 #-----------------------------------------------------------------------------
-ARM_OBJ_DIR := obj_arm
 X86_OBJ_DIR := obj_x86
 
 
 #-----------------------------------------------------------------------------
 # Always run the recipe to make the following targets
 #-----------------------------------------------------------------------------
-.PHONY: $(X86_OBJ_DIR) $(ARM_OBJ_DIR) 
+.PHONY: $(X86_OBJ_DIR) 
 
 
 #-----------------------------------------------------------------------------
@@ -108,10 +98,9 @@ OBJ_FILES := ${C_OBJ} ${CPP_OBJ}
 
 
 #-----------------------------------------------------------------------------
-# We are going to keep x86 and ARM object files in separate sub-directories
+# We are going to keep object files in separate sub-directories
 #-----------------------------------------------------------------------------
 X86_OBJS := $(addprefix $(X86_OBJ_DIR)/,$(OBJ_FILES))
-ARM_OBJS := $(addprefix $(ARM_OBJ_DIR)/,$(OBJ_FILES))
 
 
 #-----------------------------------------------------------------------------
@@ -125,29 +114,11 @@ $(X86_OBJ_DIR)/%.o : %.c
 
 
 #-----------------------------------------------------------------------------
-# This rules tells how to compile an ARM .o object file from a .cpp source
-#-----------------------------------------------------------------------------
-$(ARM_OBJ_DIR)/%.o : %.cpp
-	$(ARM_CXX) $(CPPFLAGS) $(CPP_STD) $(CXXFLAGS) $(ARMFLAGS) -c $< -o $@
-
-$(ARM_OBJ_DIR)/%.o : %.c
-	$(ARM_CC) $(CPPFLAGS) $(C_STD) $(CXXFLAGS) $(ARMFLAGS) -c $< -o $@
-
-
-#-----------------------------------------------------------------------------
 # This rule builds the x86 executable from the object files
 #-----------------------------------------------------------------------------
-$(EXE).x86 : $(X86_OBJS)
+$(EXE) : $(X86_OBJS)
 	$(X86_CXX) -m$(X86_TYPE) -o $@ $(X86_OBJS) $(LINK_FLAGS)
-	$(X86_STRIP) $(EXE).x86
-
-
-#-----------------------------------------------------------------------------
-# This rule builds the ARM executable from the object files
-#-----------------------------------------------------------------------------
-$(EXE).arm : $(ARM_OBJS)
-	$(ARM_CXX) $(LINK_FLAGS) $(ARMFLAGS) -o $@ $(ARM_OBJS) 
-	$(ARM_STRIP) $(EXE).arm
+	$(X86_STRIP) $(EXE)
 
 
 #-----------------------------------------------------------------------------
@@ -157,15 +128,9 @@ all:	$(ALL)
 
 
 #-----------------------------------------------------------------------------
-# This target builds just the ARM executable
-#-----------------------------------------------------------------------------
-arm:	$(ARM_OBJ_DIR) $(EXE).arm  
-
-
-#-----------------------------------------------------------------------------
 # This target builds just the x86 executable
 #-----------------------------------------------------------------------------
-x86:	$(X86_OBJ_DIR) $(EXE).x86
+x86:	$(X86_OBJ_DIR) $(EXE)
 
 
 #-----------------------------------------------------------------------------
@@ -176,18 +141,13 @@ $(X86_OBJ_DIR):
 	    mkdir -p -m 777 $(X86_OBJ_DIR)/$$subdir ;\
 	done
 
-$(ARM_OBJ_DIR):
-	@for subdir in $(SUBDIRS); do \
-	    mkdir -p -m 777 $(ARM_OBJ_DIR)/$$subdir ;\
-	done
-
 
 #-----------------------------------------------------------------------------
 # This target removes all files that are created at build time
 #-----------------------------------------------------------------------------
 clean:
-	rm -rf Makefile.bak makefile.bak $(EXE).tgz $(EXE).x86 $(EXE).arm
-	rm -rf $(X86_OBJ_DIR) $(ARM_OBJ_DIR)
+	rm -rf Makefile.bak makefile.bak $(EXE).tgz $(EXE) 
+	rm -rf $(X86_OBJ_DIR) 
 
 
 #-----------------------------------------------------------------------------
@@ -203,7 +163,6 @@ tarball:	clean
 #-----------------------------------------------------------------------------
 depend:
 	@makedepend    -p$(X86_OBJ_DIR)/ $(C_SRC_FILES) $(CPP_SRC_FILES) -Y 2>/dev/null
-	@makedepend -a -p$(ARM_OBJ_DIR)/ $(C_SRC_FILES) $(CPP_SRC_FILES) -Y 2>/dev/null
 
 
 #-----------------------------------------------------------------------------
