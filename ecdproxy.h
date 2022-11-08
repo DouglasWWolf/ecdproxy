@@ -18,6 +18,7 @@ public:
 
     // Default constructor
     CECDProxy();
+    ~CECDProxy();
 
     // Call this once to read in the configuration file.  Can throw std::runtime_error
     void init(std::string filename);
@@ -47,6 +48,12 @@ protected:
 
     // Cleans up (i.e., deletes) FIFOs created by "createIntrFIFOs"
     void cleanupIntrFIFOs();
+
+    // Spawns "monitorInterrupts()" in its own detached thread
+    void spawnTopLevelInterruptHandler(int uioDevice);
+
+    // Monitors PCI interrupts and notifies handlers by writing to FIFOs
+    void monitorInterrupts(int uioDevice);
 
     // Constains the path to the FIFOs we use to receive interrupt notifications
     std::string intrFifoPath_;

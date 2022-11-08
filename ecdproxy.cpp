@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <thread>
 #include "ecdproxy.h"
 #include "config_file.h"
 #include "PciDevice.h"
@@ -30,7 +31,6 @@ static UioInterface UIO;
 // We may eventually need a way to associate these with a particular CECDProxy object
 static RtlAxiRevision AxiRevision;
 static RtlIntManager  AxiIntManager;
-
 
 //==========================================================================================================
 // c() - Shorthand way of converting a std::string to a const char*
@@ -142,10 +142,29 @@ static void throwRuntime(const char* fmt, ...)
 //==========================================================================================================
 CECDProxy::CECDProxy()
 {
+    // We don't yet know the base addresses of any AXI slave modules
     memset(axiMap_, 0xFF, sizeof axiMap_);    
+
+    // We don't yet know anything about the number of IRQs we monitor
+    irqCount_ = 0;
+
+    // We don't yet have a path to the interrupt-handler FIFOs
+    intrFifoPath_ = "";
+
+    // Set the file descriptor of all the interrupt handler FIFOs to -1
+    for (int i=0; i<MAX_IRQS; ++i) intrFD_[i] = -1;
 }
 //==========================================================================================================
 
+
+//==========================================================================================================
+// ~CECDProxy() - Destructor - deletes the FIFOs that we use to receive interrupts in userspace
+//==========================================================================================================
+CECDProxy::~CECDProxy()
+{
+    cleanupIntrFIFOs();    
+}
+//==========================================================================================================
 
 
 //==========================================================================================================
@@ -297,6 +316,9 @@ void CECDProxy::startPCI()
 
     // Create the FIFOs that we use to detect PCI interrupts
     createIntrFIFOs(config_.tmpDir, 2);
+
+    // Spawn the thread that sits in a loop and waits for PCI interrupt notifications
+    spawnTopLevelInterruptHandler(uioIndex);
 }
 //==========================================================================================================
 
@@ -421,3 +443,113 @@ void CECDProxy::cleanupIntrFIFOs()
     }
 }
 //==========================================================================================================
+
+
+
+
+
+//==========================================================================================================
+// spawnTopLevelInterruptHandler() - Launches "monitorInterrupts" in its own thread in order to wait for
+//                                   incoming interrupts and distribute them to their handlers
+//==========================================================================================================
+void CECDProxy::spawnTopLevelInterruptHandler(int uioDevice)
+{
+    // If we haven't been initialized, don't do anything
+    if (irqCount_ == 0) return;
+
+    // Spawn "monitorInterrupts()" in its own thread
+    thread thread(&CECDProxy::monitorInterrupts, this, uioDevice);
+
+    // Let it keep running, even when "thread" goes out of scope
+    thread.detach();
+}
+//==========================================================================================================
+
+
+
+
+//=================================================================================================
+// monitorInterrupts() - Sits in a loop reading interrupt notifications and distributing 
+//                       notifications to the FIFOs that track each interrupt source
+//=================================================================================================
+void CECDProxy::monitorInterrupts(int uioDevice)
+{
+    int      uiofd;
+    int      configfd;
+    int      err;
+    uint32_t interruptCount;
+    uint8_t  commandHigh;
+    char     filename[64];
+
+    // Generate the filename of the psudeo-file that notifies us of interrupts
+    sprintf(filename, "/dev/uio%d", uioDevice);
+
+    // Open the psuedo-file that notifies us of interrupts
+    uiofd = open(filename, O_RDONLY);
+    if (uiofd < 0)
+    {
+        perror("uio open:");
+        exit(1);
+    }
+
+    // Generate the filename of the PCI config-space psuedo-file
+    sprintf(filename, "/sys/class/uio/uio%d/device/config", uioDevice);
+
+    // Open the file that gives us access to the PCI device's confiuration space
+    configfd = open(filename, O_RDWR);
+    if (configfd < 0)
+    {
+        perror("config open:");
+        exit(1);
+    }
+
+    // Fetch the upper byte of the PCI configuration space command word
+    err = pread(configfd, &commandHigh, 1, 5);
+    if (err != 1)
+    {
+        perror("command config read:");
+        exit(1);
+    }
+    
+    // Turn off the "Disable interrupts" flag
+    commandHigh &= ~0x4;
+
+    // Give the user an opportunity to see that we've succesfully started
+    printf("Starting uio driver for device %d\n", uioDevice);
+
+    // Loop forever, monitoring incoming interrupt notifications
+    while (true)
+    {
+        // Enable (or re-enable) interrupts
+        err = pwrite(configfd, &commandHigh, 1, 5);
+        if (err != 1)
+        {
+            perror("config write:");
+            exit(1);
+        }
+
+        // Wait for notification that an interrupt has occured
+        err = read(uiofd, &interruptCount, 4);
+        if (err != 4)
+        {
+            perror("uio read:");
+            exit(1);
+        }
+
+        // Fetch the bitmap of active interrupt sources
+        uint32_t intrSources = AxiIntManager.getActiveInterrupts();
+
+        // If there are no interrupt sources, ignore this interrupt
+        if (intrSources == 0) continue;
+
+        // If we're in verbose mode, tell the world that an interrupt occured
+        printf("Interrupt from sources 0x%08x\n", intrSources);
+
+        // Clear the interrupts from those sources
+        AxiIntManager.clearInterrupts(intrSources);
+
+        // And distribute the interrupt notifications to the FIFOs
+        //?Distributor.distribute(intSources);
+    }
+}
+//=================================================================================================

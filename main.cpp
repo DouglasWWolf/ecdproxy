@@ -27,6 +27,9 @@ void execute()
     string date = proxy.getMasterBitstreamDate();
     cout << "Date: " << date << "\n";
 
+    cout << "Waiting for interrupts\n";
+    while(1) sleep(999999);
+
 }
 
 int main()
