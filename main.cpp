@@ -54,29 +54,38 @@ int main()
 //=================================================================================================
 void execute()
 {
+    bool ok;
+
     // Map the reserved RAM block into userspace
     cout << "Mapping physical RAM\n";
     physMem = mapPhysMem(0x100000000, 0x100000000);
-    
+   
+    // Initialize ecdproxy interface
+    cout << "Initializing ECDProxy\n";
+    proxy.init("ecd_proxy.conf");
+
+    cout << "Loading ECD bitstream \n";    
+    ok = proxy.loadEcdBitstream();
+    if (!ok) printf("%s\n", proxy.getLoadError().c_str());
+
+    cout << "Loading Master bitstream \n";    
+    ok = proxy.loadMasterBitstream();
+    if (!ok) printf("%s\n", proxy.getLoadError().c_str());
+
+    // Perform hot-reset, map PCI device resources, init UIO subsystem, etc.
+    proxy.startPCI();
+
+    // Query the RTL design for revision information and display it
+    string version = proxy.getMasterBitstreamVersion();
+    cout << "Version is " << version << "\n";
+    string date = proxy.getMasterBitstreamDate();
+    cout << "Date: " << date << "\n";
+
     // Fill the ping-pong buffers
     fillBuffer(0, 0);
     fillBuffer(1, 0);
 
-    cout << "Initializing ECDProxy\n";
-    proxy.init("ecd_proxy.conf");
-
-      cout << "Loading bitstream \n";    
-      bool ok = proxy.loadMasterBitstream();
-      if (!ok) printf("%s\n", proxy.getLoadError().c_str());
-
-    proxy.startPCI();
-
-    string version = proxy.getMasterBitstreamVersion();
-    cout << "Version is " << version << "\n";
-
-    string date = proxy.getMasterBitstreamDate();
-    cout << "Date: " << date << "\n";
-
+    // Start the data transfer
     proxy.prepareDataTransfer(PPB0, PPB1, PPB_BLOCKS);
 
     cout << "Waiting for interrupts\n";
