@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <iostream>
+#include <cstring>
 #include <fcntl.h>
 #include <sys/mman.h>
 #include "ecdproxy.h"
@@ -20,6 +21,7 @@ using namespace std;
 uint8_t* mapPhysMem(uint64_t physAddr, size_t size);
 void     fillBuffer(int which, uint32_t row);
 void     execute();
+void     parseCommandLine(const char** argv);
 
 // Interfaces to the ECD_Master/ECD RTL designs
 class ECD : public CECDProxy
@@ -28,12 +30,21 @@ class ECD : public CECDProxy
 } proxy;
 
 
+//=================================================================================================
+// These flags are set by command-line switches
+//=================================================================================================
+bool loadEcdFPGA    = false;
+bool loadMasterFPGA = false;
+//=================================================================================================
+
 
 //=================================================================================================
 // main() - Execution starts here
 //=================================================================================================
-int main()
+int main(int argc, const char** argv)
 {
+    parseCommandLine(argv);
+
     printf("Proxy Test!\n");
 
     try
@@ -45,6 +56,37 @@ int main()
         printf("%s\n", e.what());
         exit(1);
     }
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// parseCommandLine() - Parses the command line looking for switches
+//
+// On Exit: if "-ecd"  switch was used, "loadEcdFPGA" is 'true'
+//          If "-ecdm" switch was used, "loadMasterFPGA" is 'true'
+//=================================================================================================
+void parseCommandLine(const char** argv)
+{
+    while (*++argv)
+    {
+        const char* arg = *argv;
+
+        if (strcmp(arg, "-ecd") == 0)
+        {
+            loadEcdFPGA = true;
+            continue;
+        }        
+
+        if (strcmp(arg, "-ecdm") == 0)
+        {
+            loadMasterFPGA = true;
+            continue;
+        }        
+
+        cerr << "Unknown command line switch " << arg << "\n";
+        exit(1);
+    }    
 }
 //=================================================================================================
 
@@ -64,13 +106,29 @@ void execute()
     cout << "Initializing ECDProxy\n";
     proxy.init("ecd_proxy.conf");
 
-    cout << "Loading ECD bitstream \n";    
-    ok = proxy.loadEcdBitstream();
-    if (!ok) printf("%s\n", proxy.getLoadError().c_str());
+    // If the user wants to load the ECD bitstream into the FPGA...
+    if (loadEcdFPGA)
+    {
+        cout << "Loading ECD bitstream \n";    
+        ok = proxy.loadEcdBitstream();
+        if (!ok)
+        {
+            printf("%s\n", proxy.getLoadError().c_str());
+            exit(1);
+        }
+    }
 
-    cout << "Loading Master bitstream \n";    
-    ok = proxy.loadMasterBitstream();
-    if (!ok) printf("%s\n", proxy.getLoadError().c_str());
+    // If the user wants to load the master bitstream into the FPGA...
+    if (loadMasterFPGA)
+    {
+        cout << "Loading Master bitstream \n";    
+        ok = proxy.loadMasterBitstream();
+        if (!ok)
+        {
+            printf("%s\n", proxy.getLoadError().c_str());
+            exit(1);
+        }
+    }
 
     // Perform hot-reset, map PCI device resources, init UIO subsystem, etc.
     proxy.startPCI();
