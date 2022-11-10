@@ -146,6 +146,7 @@ void execute()
     // Start the data transfer
     proxy.prepareDataTransfer(PPB0, PPB1, PPB_BLOCKS);
 
+    // And sleep forever
     cout << "Waiting for interrupts\n";
     while(1) sleep(999999);
 
@@ -182,6 +183,32 @@ uint8_t* mapPhysMem(uint64_t physAddr, size_t size)
 
 
 
+//=================================================================================================
+// onInterrupt() - This gets called whenever a PCI interrupt occurs
+//
+// Passed: irq        = 0 or 1 (i.e., buffer0 is empty, or buffer1 is empty)
+//         irqCounter = The number of times an interrupt has occured for this irq
+//=================================================================================================
+void ECD::onInterrupt(int irq, uint64_t irqCounter)
+{
+    // printf for demonstration purposes.  This is impractical in a real application
+    printf("Servicing IRQ %i, #%lu\n", irq, irqCounter);
+    
+    // This is the first row number of the first row in this buffer
+    uint32_t startingRow = (irqCounter * 2 + irq) * PPB_BLOCKS; 
+    
+    // Fill the buffer with data
+    fillBuffer(irq, startingRow);
+
+    // Notify the ECD-Master that this buffer has been refilled
+    notifyBufferFull(irq);
+}
+//=================================================================================================
+
+
+//=================================================================================================
+// fillBuffer() - This stuffs some data into the buffer for the purposes of our demo
+//=================================================================================================
 void fillBuffer(int which, uint32_t row)
 {
     uint8_t marker = (which == 0 ? 0x00 : 0x80);
@@ -196,7 +223,6 @@ void fillBuffer(int which, uint32_t row)
 
         for (int cycle = 0; cycle < 64; ++cycle)
         {
-            //printf("IRQ %i, Block %i, cycle %i\n", which, block, cycle);
             uint32_t value = (cycle << 24) | (row_l << 16) | (row_h << 8) | marker;
             for (int index=0; index <8; ++index) *ptr++ = value;
         }
@@ -204,13 +230,4 @@ void fillBuffer(int which, uint32_t row)
         ++row;
     }
 }
-
-uint32_t ppbRow[2];
-
-void ECD::onInterrupt(int irq, uint64_t irqCounter)
-{
-    printf("Servicing IRQ %i, #%lu\n", irq, irqCounter);
-    ppbRow[irq] += PPB_BLOCKS;
-    fillBuffer(irq, ppbRow[irq]);
-    notifyBufferFull(irq);
-}
+//=================================================================================================
