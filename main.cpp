@@ -8,6 +8,7 @@
 #include <errno.h>
 #include "ecdproxy.h"
 
+
 // The addresses and size of the ping-pong buffers
 const uint64_t PPB0 = 0x100000000;
 const uint64_t PPB1 = 0x200000000;
@@ -217,33 +218,57 @@ void ECD::onInterrupt(int irq, uint64_t irqCounter)
 //=================================================================================================
 void fillBuffer(int which, uint32_t row)
 {
-    printf("filling buffer #%i\n", which);
+    printf("Filling buffer #%i\n", which);
 
-    uint8_t marker = (which == 0 ? 0x00 : 0x80);
+    // The offset into our contiguous buffer depends on which ping-pong buffer we're filling
     uint64_t memOffset = (which == 0) ? 0 : (PPB1 - PPB0);
 
-    uint32_t* ptr = (uint32_t*) (physMem + memOffset);
-    
-    memset(ptr, which, PPB_BLOCKS * 2048);
-    printf("filling buffer #%i complete\n", which);
+    // Get a pointer to the start of the appropriate ping-pong buffer
+    uint8_t* ptr = (uint8_t*) (physMem + memOffset);
 
-    return;
-
-
-    for (uint32_t block = 0; block < PPB_BLOCKS; ++block)
+    // Open the data file
+    int fd = open("bigdata.dat", O_RDONLY);
+    if (fd < 0)
     {
-        uint8_t row_h = (row >> 8) & 0xFF;
-        uint8_t row_l = (row     ) & 0xFF;
-
-        for (int cycle = 0; cycle < 64; ++cycle)
-        {
-            uint32_t value = (cycle << 24) | (row_l << 16) | (row_h << 8) | marker;
-            for (int index=0; index <8; ++index) *ptr++ = value;
-        }
-
-        ++row;
+        perror("open");
+        exit(1);
     }
 
+    // A row if data is 2048 bytes.  Compute how many bytes of data to load...
+    uint64_t bytes_remaining = PPB_BLOCKS * 2048;
+
+    // While there is still data to load from the file...
+    while (bytes_remaining)
+    {
+        // We'd like to load the entire remainder of the file
+        size_t block_size = bytes_remaining;
+
+        // We're going to load this file in chunks of no more than 1 GB
+        if (block_size > 0x40000000) block_size = 0x40000000;
+
+        // Read in this chunk of the file
+        printf("Loading %lu\n", block_size);
+        size_t rc = read(fd, ptr, block_size);
+        if (rc != block_size)
+        {
+            perror("read");
+            exit(1);
+        }
+
+        // Bump the pointer to where the next chunk will be stored
+        ptr += block_size;
+
+        // And keep track of how many bytes are left to load
+        bytes_remaining -= block_size;
+    }
+
+    // We're done with the input file
+    close(fd);
+
+    // We display a "done" message so we can physically see how long
+    // it takes to fill the buffer with data
+    printf("filling buffer #%i complete\n", which);
 
 }
 //=================================================================================================
+
