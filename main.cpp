@@ -5,12 +5,13 @@
 #include <cstring>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <errno.h>
 #include "ecdproxy.h"
 
 // The addresses and size of the ping-pong buffers
 const uint64_t PPB0 = 0x100000000;
-const uint64_t PPB1 = 0x140000000;
-const uint32_t PPB_BLOCKS = 16;
+const uint64_t PPB1 = 0x200000000;
+const uint32_t PPB_BLOCKS = 0x100000000LL / 2048;
 
 // Userspace pointer to reserved RAM
 uint8_t* physMem;
@@ -100,7 +101,7 @@ void execute()
 
     // Map the reserved RAM block into userspace
     cout << "Mapping physical RAM\n";
-    physMem = mapPhysMem(0x100000000, 0x100000000);
+    physMem = mapPhysMem(0x100000000, 0x200000000);
    
     // Initialize ecdproxy interface
     cout << "Initializing ECDProxy\n";
@@ -174,7 +175,12 @@ uint8_t* mapPhysMem(uint64_t physAddr, size_t size)
     void* ptr = ::mmap(0, size, protection, MAP_SHARED, fd, physAddr);
 
     // If a mapping error occurs, it's fatal
-    if (ptr == MAP_FAILED) throw std::runtime_error("mmap failed");
+    if (ptr == MAP_FAILED) 
+    {
+        perror("mmap failed");
+        throw std::runtime_error("mmap failed");
+    }
+
 
    // Hand the user-space pointer to the caller
    return (uint8_t*) ptr;
@@ -195,10 +201,10 @@ void ECD::onInterrupt(int irq, uint64_t irqCounter)
     printf("Servicing IRQ %i, #%lu\n", irq, irqCounter);
     
     // This is the first row number of the first row in this buffer
-    uint32_t startingRow = (irqCounter * 2 + irq) * PPB_BLOCKS; 
+    // uint32_t startingRow = (irqCounter * 2 + irq) * PPB_BLOCKS; 
     
     // Fill the buffer with data
-    fillBuffer(irq, startingRow);
+    // fillBuffer(irq, startingRow);
 
     // Notify the ECD-Master that this buffer has been refilled
     notifyBufferFull(irq);
@@ -211,12 +217,20 @@ void ECD::onInterrupt(int irq, uint64_t irqCounter)
 //=================================================================================================
 void fillBuffer(int which, uint32_t row)
 {
+    printf("filling buffer #%i\n", which);
+
     uint8_t marker = (which == 0 ? 0x00 : 0x80);
     uint64_t memOffset = (which == 0) ? 0 : (PPB1 - PPB0);
 
     uint32_t* ptr = (uint32_t*) (physMem + memOffset);
+    
+    memset(ptr, which, PPB_BLOCKS * 2048);
+    printf("filling buffer #%i complete\n", which);
 
-    for (int block = 0; block < PPB_BLOCKS; ++block)
+    return;
+
+
+    for (uint32_t block = 0; block < PPB_BLOCKS; ++block)
     {
         uint8_t row_h = (row >> 8) & 0xFF;
         uint8_t row_l = (row     ) & 0xFF;
@@ -229,5 +243,7 @@ void fillBuffer(int which, uint32_t row)
 
         ++row;
     }
+
+
 }
 //=================================================================================================
