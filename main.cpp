@@ -9,15 +9,15 @@
 #include "ecdproxy.h"
 
 
+using namespace std;
+
 // The addresses and size of the ping-pong buffers
-const uint64_t PPB0 = 0x100000000;
-const uint64_t PPB1 = 0x200000000;
-const uint32_t PPB_BLOCKS = 0x100000000LL / 2048;
+const uint64_t PPB0 = 0x100000000;   // Address 4G
+const uint64_t PPB1 = 0x200000000;   // Address 8G
+const uint32_t PPB_BLOCKS = 0x100000000LL / 2048;  // However many rows will fit into 4G
 
 // Userspace pointer to reserved RAM
 uint8_t* physMem;
-
-using namespace std;
 
 // Forward declarations
 uint8_t* mapPhysMem(uint64_t physAddr, size_t size);
@@ -201,12 +201,6 @@ void ECD::onInterrupt(int irq, uint64_t irqCounter)
     // printf for demonstration purposes.  This is impractical in a real application
     printf("Servicing IRQ %i, #%lu\n", irq, irqCounter);
     
-    // This is the first row number of the first row in this buffer
-    // uint32_t startingRow = (irqCounter * 2 + irq) * PPB_BLOCKS; 
-    
-    // Fill the buffer with data
-    // fillBuffer(irq, startingRow);
-
     // Notify the ECD-Master that this buffer has been refilled
     notifyBufferFull(irq);
 }
