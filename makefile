@@ -184,21 +184,3 @@ debug:
 
 
 # DO NOT DELETE
-
-obj_x86/ecdproxylib/config_file.o: ecdproxylib/config_file.h
-obj_x86/ecdproxylib/config_file.o: ecdproxylib/tokenizer.h
-obj_x86/ecdproxylib/tokenizer.o: ecdproxylib/tokenizer.h
-obj_x86/ecdproxylib/UioInterface.o: ecdproxylib/UioInterface.h
-obj_x86/ecdproxylib/RtlDataControl.o: ecdproxylib/RtlDataControl.h
-obj_x86/ecdproxylib/RtlIrqManager.o: ecdproxylib/RtlIrqManager.h
-obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/ecdproxy.h
-obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/config_file.h
-obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/PciDevice.h
-obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/UioInterface.h
-obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/RtlAxiRevision.h
-obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/RtlIrqManager.h
-obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/RtlRestartManager.h
-obj_x86/ecdproxylib/ecdproxy.o: ecdproxylib/RtlDataControl.h
-obj_x86/ecdproxylib/PciDevice.o: ecdproxylib/PciDevice.h
-obj_x86/ecdproxylib/RtlAxiRevision.o: ecdproxylib/RtlAxiRevision.h
-obj_x86/ecdproxylib/RtlRestartManager.o: ecdproxylib/RtlRestartManager.h
