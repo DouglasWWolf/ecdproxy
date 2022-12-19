@@ -19,16 +19,15 @@ const uint32_t CYCLES_PER_BLOCK = 64;
 const uint32_t BYTES_PER_BLOCK = BYTES_PER_CYCLE * CYCLES_PER_BLOCK;
 
 // The addresses and size of the ping-pong buffers
-const uint64_t PPB0 = 0x100000000;   // Address 4G
-const uint64_t PPB1 = 0x200000000;   // Address 8G
-const uint32_t PPB_BLOCKS = 0x20000000 / BYTES_PER_BLOCK;  // However many rows will fit into 512MB
+const uint64_t CONTIG_BUFFER = 0x100000000;   // Address 4G
+const uint32_t CONTIG_BLOCKS = 0x20000000 / BYTES_PER_BLOCK;  // However many rows will fit into 512MB
 
 // Userspace pointer to reserved RAM
 uint8_t* physMem;
 
 // Forward declarations
 uint8_t* mapPhysMem(uint64_t physAddr, size_t size);
-void     fillBuffer(int which, uint32_t row);
+void     fillBuffer();
 void     execute();
 void     parseCommandLine(const char** argv);
 
@@ -154,12 +153,11 @@ void execute()
     proxy.checkQsfpStatus(1, true);
     cout << "QSFP Channel 1 is up\n";
     
-    // Fill the ping-pong buffers
-    fillBuffer(0, 0);
-    fillBuffer(1, 0);
+    // Fill the contiguous buffer
+    fillBuffer();
 
     // Start the data transfer
-    proxy.prepareDataTransfer(PPB0, PPB1, PPB_BLOCKS);
+    proxy.prepareDataTransfer(CONTIG_BUFFER, CONTIG_BLOCKS);
 
     // And sleep forever
     cout << "Waiting for interrupts\n";
@@ -214,14 +212,6 @@ void ECD::onInterrupt(int irq, uint64_t irqCounter)
     // printf for demonstration purposes.  This is impractical in a real application
     printf("Servicing IRQ %i, #%lu\n", irq, irqCounter);
     
-    /*
-     *
-     *     In real life, we would refill the ping-pong buffer here
-     * 
-     */
-
-    // Notify the ECD-Master that this buffer has been refilled
-    notifyBufferFull(irq);
 }
 //=================================================================================================
 
@@ -242,19 +232,16 @@ void ECD::onInterrupt(int irq, uint64_t irqCounter)
 // very large contiguouis blocks.
 //   
 //=================================================================================================
-void fillBuffer(int which, uint32_t row)
+void fillBuffer()
 {
     // One gigabyte
     const uint32_t ONE_GB = 0x40000000;
 
     // Tell the user what's taking so long...
-    printf("Loading ping-pong buffer #%i\n", which);
-
-    // The offset into our contiguous buffer depends on which ping-pong buffer we're filling
-    uint64_t memOffset = (which == 0) ? 0 : (PPB1 - PPB0);
-
+    printf("Loading contiguous buffer\n");
+    
     // Get a pointer to the start of the appropriate ping-pong buffer
-    uint8_t* ptr = (uint8_t*) (physMem + memOffset);
+    uint8_t* ptr = (uint8_t*) (physMem);
 
     // Open the data file
     int fd = open("bigdata.dat", O_RDONLY);
@@ -268,7 +255,7 @@ void fillBuffer(int which, uint32_t row)
     uint8_t* local_buffer = new uint8_t[ONE_GB];
 
     // Compute how many bytes of data to load...
-    uint64_t bytes_remaining = (uint64_t)PPB_BLOCKS * (uint64_t)BYTES_PER_BLOCK;
+    uint64_t bytes_remaining = (uint64_t)CONTIG_BLOCKS * (uint64_t)BYTES_PER_BLOCK;
 
     // While there is still data to load from the file...
     while (bytes_remaining)
