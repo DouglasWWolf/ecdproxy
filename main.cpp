@@ -20,7 +20,7 @@ const uint32_t BYTES_PER_BLOCK = BYTES_PER_CYCLE * CYCLES_PER_BLOCK;
 
 // The addresses and size of the ping-pong buffers
 const uint64_t CONTIG_BUFFER = 0x100000000;   // Address 4G
-const uint32_t CONTIG_BLOCKS = 0x20000000 / BYTES_PER_BLOCK;  // However many rows will fit into 512MB
+const uint32_t CONTIG_BLOCKS = 0x100000000LL / BYTES_PER_BLOCK;  // However many rows will fit into 4GB
 
 // Forward declarations
 void     execute();
