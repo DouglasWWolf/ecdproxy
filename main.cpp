@@ -22,12 +22,7 @@ const uint32_t BYTES_PER_BLOCK = BYTES_PER_CYCLE * CYCLES_PER_BLOCK;
 const uint64_t CONTIG_BUFFER = 0x100000000;   // Address 4G
 const uint32_t CONTIG_BLOCKS = 0x20000000 / BYTES_PER_BLOCK;  // However many rows will fit into 512MB
 
-// Userspace pointer to reserved RAM
-uint8_t* physMem;
-
 // Forward declarations
-uint8_t* mapPhysMem(uint64_t physAddr, size_t size);
-void     fillBuffer();
 void     execute();
 void     parseCommandLine(const char** argv);
 
@@ -101,14 +96,12 @@ void parseCommandLine(const char** argv)
 
 //=================================================================================================
 // execute() - Does everything neccessary to begin a data transfer
+//
+// This routine assumes the run data has already been loaded into the contiguous RAM buffer
 //=================================================================================================
 void execute()
 {
     bool ok;
-
-    // Map the reserved RAM block into userspace
-    cout << "Mapping physical RAM\n";
-    physMem = mapPhysMem(0x100000000, 0x200000000);
    
     // Initialize ecdproxy interface
     cout << "Initializing ECDProxy\n";
@@ -152,9 +145,6 @@ void execute()
     cout << "QSFP Channel 0 is up\n";
     proxy.checkQsfpStatus(1, true);
     cout << "QSFP Channel 1 is up\n";
-    
-    // Fill the contiguous buffer
-    fillBuffer();
 
     // Start the data transfer
     proxy.prepareDataTransfer(CONTIG_BUFFER, CONTIG_BLOCKS);
@@ -165,40 +155,6 @@ void execute()
 
 }
 //=================================================================================================
-
-
-//=================================================================================================
-// mapPhysMem() - Maps phyiscal memory addresses into user-space
-//=================================================================================================
-uint8_t* mapPhysMem(uint64_t physAddr, size_t size)
-{
-    const char* filename = "/dev/mem";
-
-    // These are the memory protection flags we'll use when mapping the device into memory
-    const int protection = PROT_READ | PROT_WRITE;
-
-    // Open the /dev/mem device
-    int fd = ::open(filename, O_RDWR| O_SYNC);
-
-    // If that open failed, we're done here
-    if (fd < 0) throw std::runtime_error("Must be root.  Use sudo.");
-
-    // Map the resources of this PCI device's BAR into our user-space memory map
-    void* ptr = ::mmap(0, size, protection, MAP_SHARED, fd, physAddr);
-
-    // If a mapping error occurs, it's fatal
-    if (ptr == MAP_FAILED) 
-    {
-        perror("mmap failed");
-        throw std::runtime_error("mmap failed");
-    }
-
-
-   // Hand the user-space pointer to the caller
-   return (uint8_t*) ptr;
-}
-//=================================================================================================
-
 
 
 //=================================================================================================
@@ -215,79 +171,3 @@ void ECD::onInterrupt(int irq, uint64_t irqCounter)
 }
 //=================================================================================================
 
-
-//=================================================================================================
-// fillBuffer() - This stuffs some data into the DMA buffer for the purposes of our demo
-//
-//                          <<< THIS ROUTINE IS A KLUDGE >>>
-//
-// Because of yet unresolved issues with very slow-writes to the DMA buffer, we are reading the
-// file into a local user-space buffer then copying it into the DMA buffer.    For reasons we don't
-// yet understand, the MMU allows us to copy a user-space buffer into the DMA space buffer faster
-// than it allows us to write to it directly.
-//
-//                               <<< THIS IS A HACK >>>
-//
-// The hack will be fixed when we figure out how to write a device driver that can allocate
-// very large contiguouis blocks.
-//   
-//=================================================================================================
-void fillBuffer()
-{
-    // One gigabyte
-    const uint32_t ONE_GB = 0x40000000;
-
-    // Tell the user what's taking so long...
-    printf("Loading contiguous buffer\n");
-    
-    // Get a pointer to the start of the appropriate ping-pong buffer
-    uint8_t* ptr = (uint8_t*) (physMem);
-
-    // Open the data file
-    int fd = open("bigdata.dat", O_RDONLY);
-    if (fd < 0)
-    {
-        perror("open");
-        exit(1);
-    }
-
-    // Allocate a 1GB RAM buffer in userspace
-    uint8_t* local_buffer = new uint8_t[ONE_GB];
-
-    // Compute how many bytes of data to load...
-    uint64_t bytes_remaining = (uint64_t)CONTIG_BLOCKS * (uint64_t)BYTES_PER_BLOCK;
-
-    // While there is still data to load from the file...
-    while (bytes_remaining)
-    {
-        // We'd like to load the entire remainder of the file
-        size_t block_size = bytes_remaining;
-
-        // We're going to load this file in chunks of no more than 1 GB
-        if (block_size > ONE_GB) block_size = ONE_GB;
-
-        // Load this chunk of the file into our local user-space buffer
-        size_t rc = read(fd, local_buffer, block_size);
-        if (rc != block_size)
-        {
-            perror("read");
-            exit(1);
-        }
-
-        // Copy the userspace buffer into the contiguous block of physical RAM
-        memcpy(ptr, local_buffer, block_size);
-
-        // Bump the pointer to where the next chunk will be stored
-        ptr += block_size;
-
-        // And keep track of how many bytes are left to load
-        bytes_remaining -= block_size;
-    }
-
-    // Free up the local_buffer so we don't leak memory
-    delete[] local_buffer;
-
-    // We're done with the input file
-    close(fd);
-}
-//=================================================================================================
